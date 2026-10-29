@@ -1,0 +1,45 @@
+name: Epico outages email worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2-59/15 * * * *'
+
+permissions: {}
+
+concurrency:
+  group: epico-outages-email-worker
+  cancel-in-progress: false
+
+jobs:
+  invoke:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.OUTAGES_SCHEDULER_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Invoke protected production worker
+        env:
+          WORKER_TOKEN: ${{ secrets.OUTAGES_WORKER_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${WORKER_TOKEN:-}"
+          echo "::add-mask::${WORKER_TOKEN}"
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          status="$({ curl --silent --show-error \
+            --proto '=https' \
+            --connect-timeout 10 \
+            --max-time 55 \
+            --request POST \
+            --header "X-Epico-Worker-Token: ${WORKER_TOKEN}" \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            'https://epico.com.ua/outages/worker.php'; } 2>&1)"
+
+          test "$status" = '200'
+          jq -e '.ok == true and (.state == "ok" or .state == "busy")' "$response_file" >/dev/null
+          jq -r '"worker_state=" + .state' "$response_file"
+

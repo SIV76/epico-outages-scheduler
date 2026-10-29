@@ -39,7 +39,12 @@ jobs:
             --write-out '%{http_code}' \
             'https://epico.com.ua/outages/worker.php'; } 2>&1)"
 
-          test "$status" = '200'
+          echo "http_status=$status"
+          if [ "$status" != '200' ]; then
+            jq -r '"worker_state=" + (.state // "unspecified")' "$response_file" 2>/dev/null || echo 'worker_state=non_json_response'
+            exit 1
+          fi
           jq -e '.ok == true and (.state == "ok" or .state == "busy")' "$response_file" >/dev/null
           jq -r '"worker_state=" + .state' "$response_file"
+
 

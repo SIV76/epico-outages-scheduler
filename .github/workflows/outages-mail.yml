@@ -45,6 +45,6 @@ jobs:
             exit 1
           fi
           jq -e '.ok == true and (.state == "ok" or .state == "busy")' "$response_file" >/dev/null
-          jq -r '"worker_state=" + .state' "$response_file"
+          jq -r '"worker_state=" + .state + " queued=" + ((.queued // 0)|tostring) + " accepted=" + ((.accepted // 0)|tostring) + " retry=" + ((.retry // 0)|tostring) + " failed=" + ((.failed // 0)|tostring)' "$response_file"
 
 

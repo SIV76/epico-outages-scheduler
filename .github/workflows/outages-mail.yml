@@ -37,7 +37,7 @@ jobs:
             --header "X-Epico-Worker-Token: ${WORKER_TOKEN}" \
             --output "$response_file" \
             --write-out '%{http_code}' \
-            'https://epico.com.ua/outages/worker.php'; } 2>&1)"
+            'https://epico.com.ua/outages/worker-v2-20261029.php'; } 2>&1)"
 
           echo "http_status=$status"
           if [ "$status" != '200' ]; then
